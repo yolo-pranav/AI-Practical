@@ -1,56 +1,62 @@
-import heapq
+def is_safe(board, row, col):
+    # Check the left side of the current row
+    for i in range(col):
+        if board[row][i] == 1:
+            return False
 
-class State:
-    def __init__(self, queens):
-        self.queens = queens
-        self.heuristic = self.calculate_heuristic()
+    # Check upper diagonal on the left side
+    for i, j in zip(range(row, -1, -1), range(col, -1, -1)):
+        if board[i][j] == 1:
+            return False
 
-    def calculate_heuristic(self):
-        heuristic = 0
-        for i in range(8):
-            for j in range(i + 1, 8):
-                if (
-                    self.queens[i] == self.queens[j] or
-                    abs(self.queens[i] - self.queens[j]) == j - i
-                ):
-                    heuristic += 1
-        return heuristic
+    # Check lower diagonal on the left side
+    for i, j in zip(range(row, len(board), 1), range(col, -1, -1)):
+        if board[i][j] == 1:
+            return False
 
-    def __lt__(self, other):
-        return self.heuristic < other.heuristic
+    return True
 
-def is_goal(state):
-    return state.heuristic == 0
+def solve_8_queens(board, col, solutions):
+    if col >= len(board):
+        solutions.append([row[:] for row in board])
+        return
 
-def print_board(queens):
-    for i in range(8):
-        row = ["Q" if queens[i] == j else "." for j in range(8)]
-        print(" ".join(row))
+    for i in range(len(board)):
+        if is_safe(board, i, col):
+            board[i][col] = 1
+            solve_8_queens(board, col + 1, solutions)
+            board[i][col] = 0
 
-def solve_8queens():
-    start_state = State([0, 0, 0, 0, 0, 0, 0, 0])
-    open_set = [start_state]
-    heapq.heapify(open_set)
-    closed_set = set()
+def print_solutions(solutions):
+    for solution in solutions:
+        for row in solution:
+            row_str = ''.join('Q ' if cell == 1 else '_ ' for cell in row)
+            print(row_str)
+        print()
 
-    while open_set:
-        current_state = heapq.heappop(open_set)
-        if is_goal(current_state):
-            print("Solution found:")
-            print_board(current_state.queens)
-            break
+def find_all_fundamental_solutions():
+    board_size = 8
+    board = [[0 for _ in range(board_size)] for _ in range(board_size)]
+    solutions = []
+    solve_8_queens(board, 0, solutions)
+    return solutions
 
-        closed_set.add(tuple(current_state.queens))
+def is_fundamental_solution(solution, fundamental_solutions):
+    # Rotate and mirror the solution and compare to existing fundamental solutions
+    rotated_solutions = []
+    for _ in range(4):
+        rotated_solutions.append([''.join('Q ' if cell == 1 else '_ ' for cell in row) for row in solution])
+        solution = list(zip(*reversed(solution)))
 
-        for i in range(8):
-            for j in range(8):
-                if i != j:
-                    new_queens = current_state.queens[:]
-                    new_queens[i] = j
-                    neighbor = State(new_queens)
+    for rotated in rotated_solutions:
+        if rotated in fundamental_solutions:
+            return False
+    return True
 
-                    if tuple(neighbor.queens) not in closed_set:
-                        heapq.heappush(open_set, neighbor)
+fundamental_solutions = []
+solutions = find_all_fundamental_solutions()
+for solution in solutions:
+    if is_fundamental_solution(solution, fundamental_solutions):
+        fundamental_solutions.append(solution)
 
-if __name__ == "__main__":
-    solve_8queens()
+print_solutions(fundamental_solutions[:12])

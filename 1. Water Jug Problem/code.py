@@ -1,56 +1,69 @@
 from collections import deque
 
+class State:
+    def __init__(self, jug_a, jug_b):
+        self.jug_a = jug_a
+        self.jug_b = jug_b
+
+    def __eq__(self, other):
+        return self.jug_a == other.jug_a and self.jug_b == other.jug_b
+
+    def __hash__(self):
+        return hash((self.jug_a, self.jug_b))
+
+def is_valid_state(state, capacity_a, capacity_b):
+    return 0 <= state.jug_a <= capacity_a and 0 <= state.jug_b <= capacity_b
+
 def water_jug_bfs(capacity_a, capacity_b, target):
+    initial_state = State(0, 0)
     visited = set()
     queue = deque()
-    initial_state = (0, 0)  # Initial state of the jugs (0 liters in both jugs)
-    queue.append(initial_state)
+    queue.append((initial_state, []))
 
     while queue:
-        current_state = queue.popleft()
-        a, b = current_state
+        current_state, actions = queue.popleft()
 
-        print("Current state: ({}, {})".format(a, b))
+        if current_state.jug_a == target or current_state.jug_b == target:
+            actions.append(f"Reached target: {target}")
+            return actions
 
-        if a == target or b == target:
-            print("Goal state reached: ({}, {})".format(a, b))
-            return
+        # Generate all possible next states
+        next_states = []
 
-        if (a, b) in visited:
-            continue
+        # Fill jug A
+        next_states.append(State(capacity_a, current_state.jug_b))
 
-        visited.add((a, b))
+        # Fill jug B
+        next_states.append(State(current_state.jug_a, capacity_b))
 
-        # Fill Jug A
-        if a < capacity_a:
-            queue.append((capacity_a, b))
+        # Empty jug A
+        next_states.append(State(0, current_state.jug_b))
 
-        # Fill Jug B
-        if b < capacity_b:
-            queue.append((a, capacity_b))
+        # Empty jug B
+        next_states.append(State(current_state.jug_a, 0))
 
-        # Empty Jug A
-        if a > 0:
-            queue.append((0, b))
+        # Pour from A to B
+        pour_amount = min(current_state.jug_a, capacity_b - current_state.jug_b)
+        next_states.append(State(current_state.jug_a - pour_amount, current_state.jug_b + pour_amount))
 
-        # Empty Jug B
-        if b > 0:
-            queue.append((a, 0))
+        # Pour from B to A
+        pour_amount = min(current_state.jug_b, capacity_a - current_state.jug_a)
+        next_states.append(State(current_state.jug_a + pour_amount, current_state.jug_b - pour_amount))
 
-        # Pour from Jug A to Jug B
-        if a > 0 and b < capacity_b:
-            pour = min(a, capacity_b - b)
-            queue.append((a - pour, b + pour))
+        for state in next_states:
+            if is_valid_state(state, capacity_a, capacity_b) and state not in visited:
+                visited.add(state)
+                queue.append((state, actions + [f"Fill jug A: {state.jug_a}, jug B: {state.jug_b}"]))
 
-        # Pour from Jug B to Jug A
-        if b > 0 and a < capacity_a:
-            pour = min(b, capacity_a - a)
-            queue.append((a + pour, b - pour))
+    return None
 
-    print("Goal state not reachable")
-
-# Example usage
 capacity_a = 4
 capacity_b = 3
-target = 2
-water_jug_bfs(capacity_a, capacity_b, target)
+target_volume = 2
+result = water_jug_bfs(capacity_a, capacity_b, target_volume)
+
+if result:
+    for action in result:
+        print(action)
+else:
+    print("Target volume cannot be achieved.")
